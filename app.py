@@ -6,6 +6,7 @@ from qiskit.quantum_info import DensityMatrix, partial_trace, Operator, state_fi
 from qiskit.circuit.library.standard_gates import XGate, ZGate
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel, depolarizing_error
+import matplotlib.pyplot as plt
 
 PAULI_X = Operator([[0, 1], [1, 0]])
 PAULI_Y = Operator([[0, -1j], [1j, 0]])
@@ -64,12 +65,12 @@ def create_bloch_sphere(vector, title):
     return fig
 
 st.set_page_config(layout="wide")
-st.title("👻 Eídōlon (Phantom): The Teleportation Simulator")
+st.title("👻 Eídōlon (The Phantom)")
 st.markdown("An interactive 3-step visualization of the 2022 Nobel Prize-winning quantum teleportation protocol.")
 
 col_a, col_b = st.columns(2)
 with col_a:
-    st.header(f"1. Create Alice's 'Message' Qubit ($q_0$)")
+    st.header(f"1. Create Orpheus's 'Message' Qubit ($q_0$)")
     theta_input = st.slider(
         "Set the superposition angle (θ):",
         min_value=0.0,
@@ -120,12 +121,13 @@ with col1:
     
     ideal_rho_q0 = partial_trace(before_dm, [1, 2])
     
-    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Alice's Message)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Orpheus's Message)"), width='stretch')
     st.metric("Purity", f"{get_purity(before_dm, 0):.3f}")
-    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Alice's Link)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Orpheus's Link)"), width='stretch')
     st.metric("Purity", f"{get_purity(before_dm, 1):.3f}")
-    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Bob's Qubit)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Eurydice's Qubit)"), width='stretch')
     st.metric("Purity", f"{get_purity(before_dm, 2):.3f}")
+    st.caption("Orpheus has his message ($q_0$). $q_1$ and $q_2$ are blank.")
 
 with col2:
     st.subheader("Step 2: Just Before Measurement")
@@ -149,15 +151,16 @@ with col2:
     q1_coords = get_bloch_coordinates(mid_dm, 1)
     q2_coords = get_bloch_coordinates(mid_dm, 2)
     
-    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Entangled)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Orpheus's Qubit)"), width='stretch')
     st.metric("Purity", f"{get_purity(mid_dm, 0):.3f}")
-    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Entangled)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Orpheus's Link)"), width='stretch')
     st.metric("Purity", f"{get_purity(mid_dm, 1):.3f}")
-    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Broken State)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Eurydice's Qubit)"), width='stretch')
     st.metric("Purity", f"{get_purity(mid_dm, 2):.3f}")
+    st.caption("Orpheus performs his operations, entangling all 3 qubits. The states of $q_0$ and $q_1$ are 'destroyed' (mixed) and $q_2$ is in a 'broken' state.")
 
 with col3:
-    st.subheader("Step 3: Bob Corrects")
+    st.subheader("Step 3: Eurydice Corrects")
     
     qr = QuantumRegister(3, name="q")
     cr_z = ClassicalRegister(1, name="cr_z")
@@ -191,19 +194,32 @@ with col3:
     final_rho_q2 = partial_trace(final_dm, [0, 1])
     fidelity = state_fidelity(ideal_rho_q0, final_rho_q2)
 
-    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Collapsed)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q0_coords, "q₀ (Orpheus's Qubit)"), width='stretch')
     st.metric("Purity", f"{get_purity(final_dm, 0):.3f}")
-    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Collapsed)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q1_coords, "q₁ (Orpheus's Link)"), width='stretch')
     st.metric("Purity", f"{get_purity(final_dm, 1):.3f}")
     
-    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Teleported State)"), width='stretch')
+    st.plotly_chart(create_bloch_sphere(q2_coords, "q₂ (Eurydice's State)"), width='stretch')
     st.metric("Purity", f"{get_purity(final_dm, 2):.3f}")
     st.metric("Fidelity", f"{fidelity:.3f}")
+    st.caption("Eurydice gets Orpheus's 2 classical bits, applies her correction, and recovers the original message. Teleportation complete!")
 
 st.divider()
 st.header("4. The Full Quantum Circuit")
-st.text("This is the 'ideal' circuit we designed:")
-st.text(after_qc.draw(output='text'))
+st.markdown("""
+This is the "ideal" circuit. It's clean and simple.
+""")
+fig_ideal, ax_ideal = plt.subplots()
+after_qc.draw(output='mpl', ax=ax_ideal)
+st.pyplot(fig_ideal)
 
-st.text("This is the 'real' circuit the transpiler runs on the hardware (notice the new 'swap' gates):")
-st.text(transpiled_after_qc.draw(output='text'))
+st.markdown("""
+---
+This is the "real" circuit the transpiler runs on the hardware. 
+**Notice the new 'swap' gates** added to manage the bad hardware layout. 
+These `swap` gates are the main reason our Fidelity drops.
+""")
+
+fig_real, ax_real = plt.subplots()
+transpiled_after_qc.draw(output='mpl', ax=ax_real, idle_wires=False)
+st.pyplot(fig_real)
