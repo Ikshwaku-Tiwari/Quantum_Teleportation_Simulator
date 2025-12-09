@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
 from qiskit.quantum_info import DensityMatrix, partial_trace, Operator, state_fidelity
-from qiskit.circuit.library.standard_gates import XGate, ZGate
+from qiskit.circuit.library.standard_gates import XGate, ZGate, UGate 
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel, depolarizing_error
 import matplotlib.pyplot as plt
@@ -71,14 +71,23 @@ st.markdown("An interactive 3-step visualization of the 2022 Nobel Prize-winning
 col_a, col_b = st.columns(2)
 with col_a:
     st.header(f"1. Create Orpheus's 'Message' Qubit ($q_0$)")
+    
     theta_input = st.slider(
-        "Set the superposition angle (θ):",
+        "Set Latitude (θ):",
         min_value=0.0,
         max_value=np.pi,
         value=np.pi / 2,
         format="%.2f rad"
     )
-    st.latex(rf"|\psi\rangle = \cos({theta_input/2:.2f})|0\rangle + \sin({theta_input/2:.2f})|1\rangle")
+    phi_input = st.slider(
+        "Set Longitude/Phase (φ):",
+        min_value=0.0,
+        max_value=2 * np.pi,
+        value=0.0,
+        format="%.2f rad"
+    )
+    st.latex(rf"|\psi\rangle = \cos({theta_input/2:.2f})|0\rangle + e^{{i{phi_input:.2f}}}\sin({theta_input/2:.2f})|1\rangle")
+
 with col_b:
     st.header("2. Set Simulation Noise")
     noise_level = st.slider(
@@ -112,7 +121,7 @@ with col1:
     st.subheader("Step 1: Initial State")
     
     before_qc = QuantumCircuit(3)
-    before_qc.ry(theta_input, 0)
+    before_qc.u(theta_input, phi_input, 0, 0)
     before_dm = DensityMatrix(before_qc)
     
     q0_coords = get_bloch_coordinates(before_dm, 0)
@@ -133,7 +142,7 @@ with col2:
     st.subheader("Step 2: Just Before Measurement")
     
     mid_qc = QuantumCircuit(3, 2)
-    mid_qc.ry(theta_input, 0)
+    mid_qc.u(theta_input, phi_input, 0, 0)
     mid_qc.h(1)
     mid_qc.cx(1, 2) 
     mid_qc.barrier()
@@ -167,7 +176,7 @@ with col3:
     cr_x = ClassicalRegister(1, name="cr_x")
     after_qc = QuantumCircuit(qr, cr_z, cr_x)
 
-    after_qc.ry(theta_input, 0)
+    after_qc.u(theta_input, phi_input, 0, 0)
     after_qc.h(1)
     after_qc.cx(1, 2)
     after_qc.barrier()
@@ -216,7 +225,7 @@ st.pyplot(fig_ideal)
 st.markdown("""
 ---
 This is the "real" circuit the transpiler runs on the hardware. 
-**Notice the new 'swap' gates** added to manage the bad hardware layout. 
+**Notice the 'swap' gates** added to manage the bad hardware layout. 
 These `swap` gates are the main reason our Fidelity drops.
 """)
 
